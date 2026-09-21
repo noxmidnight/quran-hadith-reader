@@ -90,7 +90,7 @@ body {
   height: 42px;
   flex-shrink: 0;
   display: block;
-  filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.25));
+  overflow: visible;
 }
 
 .brand h1 {
@@ -371,7 +371,10 @@ body {
   background: var(--bg-card);
   padding: 20px 22px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  contain: content;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .card:hover,
@@ -379,11 +382,10 @@ body {
   background: var(--bg-card-hover);
   border-color: var(--border-strong);
   outline: none;
-  transform: translateY(-1px);
 }
 
 .card:active {
-  transform: scale(0.998);
+  background: var(--bg-card-hover);
 }
 
 .card-ref {
@@ -412,6 +414,70 @@ body {
   font-size: 1.08rem;
   line-height: 1.65;
   font-weight: 450;
+}
+
+.card-tafsir {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 2px solid var(--border-subtle);
+}
+
+.card-tafsir-label {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-muted);
+  font-weight: 700;
+}
+
+.card-tafsir-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  /* Short JS-truncated preview — avoid line-clamp layout of multi-KB tafsirs */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-tf {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+#tafsir-search {
+  margin: 14px 16px 0;
+  width: calc(100% - 32px);
+  padding: 11px 16px;
+  background: #0c0c0e;
+  color: var(--text);
+  border: 2px solid var(--border-dim);
+  border-radius: 999px;
+  outline: none;
+  font: inherit;
+  font-size: 1rem;
+}
+
+#tafsir-search:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+}
+
+#tafsir-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+  color: var(--gold-soft);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .empty {

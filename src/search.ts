@@ -66,7 +66,9 @@ export function filterCards(items: CardItem[], query: string): CardItem[] {
   if (!tokens.length) return items;
 
   return items.filter((item) => {
-    const hay = normalizeSearchText(`${item.ref} ${item.arabic} ${item.translation}`);
+    const hay = normalizeSearchText(
+      `${item.ref} ${item.arabic} ${item.translation} ${item.tafsir || ""}`,
+    );
     return tokens.every((t) => hay.includes(t));
   });
 }

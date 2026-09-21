@@ -2,6 +2,8 @@ import {
   loadArabicQuran,
   loadHadithBook,
   loadHadithIndex,
+  loadTafsir,
+  loadTafsirsIndex,
   loadTranslation,
   loadTranslationsIndex,
 } from "./data";
@@ -14,12 +16,15 @@ import type {
   HadithBookMeta,
   Mode,
   NavItem,
+  TafsirMeta,
   TranslationMeta,
 } from "./types";
 import { createVirtualList } from "./virtual-list";
 
 const DEFAULT_TRANSLATION = "en.sahih";
+const DEFAULT_TAFSIR = "en-al-jalalayn";
 const LS_TRANSLATION = "qhr.translation";
+const LS_TAFSIR = "qhr.tafsir";
 
 type QuranView = "surahs" | "ayahs";
 type HadithView = "collections" | "chapters" | "hadiths";
@@ -28,6 +33,8 @@ const statusEl = document.querySelector<HTMLElement>("#status")!;
 const searchInput = document.querySelector<HTMLInputElement>("#search-input")!;
 const translationBtn = document.querySelector<HTMLButtonElement>("#translation-btn")!;
 const translationName = document.querySelector<HTMLElement>("#translation-name")!;
+const tafsirBtn = document.querySelector<HTMLButtonElement>("#tafsir-btn")!;
+const tafsirName = document.querySelector<HTMLElement>("#tafsir-name")!;
 const navBar = document.querySelector<HTMLElement>("#nav-bar")!;
 const backBtn = document.querySelector<HTMLButtonElement>("#back-btn")!;
 const navPath = document.querySelector<HTMLElement>("#nav-path")!;
@@ -36,6 +43,11 @@ const transOverlay = document.querySelector<HTMLElement>("#trans-overlay")!;
 const transClose = document.querySelector<HTMLButtonElement>("#trans-close")!;
 const transSearch = document.querySelector<HTMLInputElement>("#trans-search")!;
 const transList = document.querySelector<HTMLElement>("#trans-list")!;
+
+const tafsirOverlay = document.querySelector<HTMLElement>("#tafsir-overlay")!;
+const tafsirClose = document.querySelector<HTMLButtonElement>("#tafsir-close")!;
+const tafsirSearch = document.querySelector<HTMLInputElement>("#tafsir-search")!;
+const tafsirList = document.querySelector<HTMLElement>("#tafsir-list")!;
 
 const toastEl = document.querySelector<HTMLElement>("#toast")!;
 const viewport = document.querySelector<HTMLElement>("#list-viewport")!;
@@ -47,12 +59,15 @@ let quranView: QuranView = "surahs";
 let hadithView: HadithView = "collections";
 
 let translations: TranslationMeta[] = [];
+let tafsirs: TafsirMeta[] = [];
 let books: HadithBookMeta[] = [];
 let activeTranslationId =
   localStorage.getItem(LS_TRANSLATION) || DEFAULT_TRANSLATION;
+let activeTafsirId = localStorage.getItem(LS_TAFSIR) || DEFAULT_TAFSIR;
 
 let arabicCache: ArabicQuran | null = null;
 let translationTexts: string[] = [];
+let tafsirTexts: string[] = [];
 let activeSurah: number | null = null;
 
 let activeBook: HadithBook | null = null;
@@ -83,9 +98,18 @@ function metaFor(id: string): TranslationMeta | undefined {
   return translations.find((t) => t.id === id);
 }
 
+function tafsirMetaFor(id: string): TafsirMeta | undefined {
+  return tafsirs.find((t) => t.id === id);
+}
+
 function updateTranslationButton() {
   const meta = metaFor(activeTranslationId);
   translationName.textContent = meta?.englishName || meta?.name || activeTranslationId;
+}
+
+function updateTafsirButton() {
+  const meta = tafsirMetaFor(activeTafsirId);
+  tafsirName.textContent = meta?.name || activeTafsirId || "None";
 }
 
 function updateChrome() {
@@ -95,6 +119,7 @@ function updateChrome() {
 
   navBar.classList.toggle("hidden", atRoot);
   translationBtn.classList.toggle("hidden", mode !== "quran");
+  tafsirBtn.classList.toggle("hidden", mode !== "quran" || !tafsirs.length);
 
   if (mode === "quran") {
     if (quranView === "ayahs" && activeSurah != null && arabicCache) {
@@ -144,6 +169,21 @@ async function ensureQuranLoaded() {
   translationTexts = translation.texts;
 }
 
+async function ensureTafsirLoaded() {
+  if (!activeTafsirId || !tafsirs.length) {
+    tafsirTexts = [];
+    return;
+  }
+  if (tafsirTexts.length) return;
+  try {
+    setStatus("Loading tafsir…");
+    const file = await loadTafsir(activeTafsirId);
+    tafsirTexts = file.texts;
+  } catch {
+    tafsirTexts = [];
+  }
+}
+
 async function ensureHadithBook(slug: string) {
   if (activeBook?.slug === slug) return activeBook;
   setStatus("Loading collection…");
@@ -167,6 +207,7 @@ function surahNavItems(): NavItem[] {
 function ayahCardsForSurah(surah: number): CardItem[] {
   if (!arabicCache) return [];
   const label = metaFor(activeTranslationId)?.englishName || "Translation";
+  const tfLabel = tafsirMetaFor(activeTafsirId)?.name || "Tafsir";
   const surahMeta = arabicCache.surahs.find((s) => s.number === surah);
   const name = surahMeta?.englishName || `Surah ${surah}`;
 
@@ -180,6 +221,8 @@ function ayahCardsForSurah(surah: number): CardItem[] {
       arabic: ayah.t,
       translation: translationTexts[i] || "",
       translationLabel: label,
+      tafsir: tafsirTexts[i] || "",
+      tafsirLabel: tfLabel,
     }));
 }
 
@@ -291,6 +334,7 @@ async function openNav(item: NavItem) {
   if (mode === "quran") {
     activeSurah = Number(item.target);
     quranView = "ayahs";
+    await ensureTafsirLoaded();
     renderCurrentView();
     return;
   }
@@ -390,10 +434,77 @@ transOverlay.addEventListener("click", (e) => {
 });
 transSearch.addEventListener("input", () => renderTranslationPicker(transSearch.value));
 
+function renderTafsirPicker(filter = "") {
+  const q = filter.trim().toLowerCase();
+  const filtered = tafsirs.filter((t) => {
+    if (!q) return true;
+    return (
+      t.name.toLowerCase().includes(q) ||
+      t.id.toLowerCase().includes(q) ||
+      t.languageName.toLowerCase().includes(q)
+    );
+  });
+
+  const frag = document.createDocumentFragment();
+
+  // Option to hide tafsir
+  const noneBtn = document.createElement("button");
+  noneBtn.type = "button";
+  noneBtn.className = "picker-item" + (!activeTafsirId ? " active" : "");
+  noneBtn.innerHTML = `<span>None</span><span class="sub">Hide tafsir on verses</span>`;
+  noneBtn.addEventListener("click", () => {
+    void selectTafsir("");
+  });
+  frag.appendChild(noneBtn);
+
+  for (const t of filtered) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "picker-item" + (t.id === activeTafsirId ? " active" : "");
+    btn.innerHTML = `<span>${escapeHtml(t.name)}</span><span class="sub">${escapeHtml(t.languageName)} · ${escapeHtml(t.id)}</span>`;
+    btn.addEventListener("click", () => {
+      void selectTafsir(t.id);
+    });
+    frag.appendChild(btn);
+  }
+
+  if (!filtered.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.style.margin = "12px";
+    empty.textContent = "No tafsirs match.";
+    frag.appendChild(empty);
+  }
+
+  tafsirList.replaceChildren(frag);
+}
+
+function openTafsirPicker() {
+  tafsirSearch.value = "";
+  renderTafsirPicker();
+  tafsirOverlay.classList.remove("hidden");
+  tafsirSearch.focus();
+}
+
+function closeTafsirPicker() {
+  tafsirOverlay.classList.add("hidden");
+}
+
+tafsirBtn.addEventListener("click", openTafsirPicker);
+tafsirClose.addEventListener("click", closeTafsirPicker);
+tafsirOverlay.addEventListener("click", (e) => {
+  if (e.target === tafsirOverlay) closeTafsirPicker();
+});
+tafsirSearch.addEventListener("input", () => renderTafsirPicker(tafsirSearch.value));
+
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (!transOverlay.classList.contains("hidden")) {
       closeTranslationPicker();
+      return;
+    }
+    if (!tafsirOverlay.classList.contains("hidden")) {
+      closeTafsirPicker();
       return;
     }
     if (!navBar.classList.contains("hidden")) goBack();
@@ -406,11 +517,21 @@ async function selectTranslation(id: string) {
   updateTranslationButton();
   closeTranslationPicker();
 
-  // Reload translation texts; keep current surah view if open
   translationTexts = [];
   await ensureQuranLoaded();
   const file = await loadTranslation(id);
   translationTexts = file.texts;
+  if (mode === "quran") renderCurrentView();
+}
+
+async function selectTafsir(id: string) {
+  activeTafsirId = id;
+  if (id) localStorage.setItem(LS_TAFSIR, id);
+  else localStorage.removeItem(LS_TAFSIR);
+  updateTafsirButton();
+  closeTafsirPicker();
+  tafsirTexts = [];
+  await ensureTafsirLoaded();
   if (mode === "quran") renderCurrentView();
 }
 
@@ -455,8 +576,17 @@ async function boot() {
     }
     updateTranslationButton();
 
+    tafsirs = await loadTafsirsIndex();
+    if (activeTafsirId && !tafsirMetaFor(activeTafsirId)) {
+      activeTafsirId =
+        tafsirs.find((t) => t.id === DEFAULT_TAFSIR)?.id || tafsirs[0]?.id || "";
+      if (activeTafsirId) localStorage.setItem(LS_TAFSIR, activeTafsirId);
+    }
+    updateTafsirButton();
+
     books = await loadHadithIndex();
     await ensureQuranLoaded();
+    await ensureTafsirLoaded();
     renderCurrentView();
   } catch (err) {
     console.error(err);

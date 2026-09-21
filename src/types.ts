@@ -35,6 +35,18 @@ export interface TranslationFile {
   texts: string[];
 }
 
+export interface TafsirMeta {
+  id: string;
+  name: string;
+  language: string;
+  languageName: string;
+}
+
+export interface TafsirFile {
+  id: string;
+  texts: string[];
+}
+
 export interface HadithBookMeta {
   slug: string;
   title: string;
@@ -71,6 +83,8 @@ export interface CardItem {
   arabic: string;
   translation: string;
   translationLabel: string;
+  tafsir?: string;
+  tafsirLabel?: string;
 }
 
 /** Clickable row for collections / chapters. */

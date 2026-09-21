@@ -11,10 +11,14 @@ export function createCopyPanel(toast: (msg: string) => void): CopyPanelApi {
   const refEl = document.querySelector<HTMLElement>("#copy-ref")!;
   const arEl = document.querySelector<HTMLElement>("#copy-arabic")!;
   const trEl = document.querySelector<HTMLElement>("#copy-translation")!;
+  const tfEl = document.querySelector<HTMLElement>("#copy-tafsir")!;
   const arCb = document.querySelector<HTMLInputElement>("#copy-ar-cb")!;
   const trCb = document.querySelector<HTMLInputElement>("#copy-tr-cb")!;
+  const tfCb = document.querySelector<HTMLInputElement>("#copy-tf-cb")!;
   const arLabel = document.querySelector<HTMLElement>("#copy-ar-label")!;
   const trLabel = document.querySelector<HTMLElement>("#copy-tr-label")!;
+  const tfLabel = document.querySelector<HTMLElement>("#copy-tf-label")!;
+  const tfWrap = document.querySelector<HTMLElement>("#copy-tf-wrap")!;
   const copyBtn = document.querySelector<HTMLButtonElement>("#copy-btn")!;
 
   let current: CardItem | null = null;
@@ -33,6 +37,13 @@ export function createCopyPanel(toast: (msg: string) => void): CopyPanelApi {
     trLabel.textContent = item.translationLabel || "Translation";
     arCb.checked = true;
     trCb.checked = true;
+
+    const hasTafsir = Boolean(item.tafsir?.trim());
+    tfWrap.classList.toggle("hidden", !hasTafsir);
+    tfEl.textContent = item.tafsir || "";
+    tfLabel.textContent = item.tafsirLabel || "Tafsir";
+    tfCb.checked = hasTafsir;
+
     overlay.classList.remove("hidden");
     copyBtn.focus();
   }
@@ -40,7 +51,7 @@ export function createCopyPanel(toast: (msg: string) => void): CopyPanelApi {
   async function writeClipboard(text: string) {
     const trimmed = text.trim();
     if (!trimmed) {
-      toast("Select Arabic and/or translation");
+      toast("Select something to copy");
       return;
     }
     try {
@@ -66,6 +77,9 @@ export function createCopyPanel(toast: (msg: string) => void): CopyPanelApi {
     const parts: string[] = [];
     if (arCb.checked) parts.push(current.arabic);
     if (trCb.checked) parts.push(current.translation);
+    if (tfCb.checked && current.tafsir) {
+      parts.push(`${current.tafsirLabel || "Tafsir"}:\n${current.tafsir}`);
+    }
     return parts.join("\n\n");
   }
 
@@ -75,7 +89,11 @@ export function createCopyPanel(toast: (msg: string) => void): CopyPanelApi {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !overlay.classList.contains("hidden")) close();
-    if (e.key === "Enter" && !overlay.classList.contains("hidden") && document.activeElement !== closeBtn) {
+    if (
+      e.key === "Enter" &&
+      !overlay.classList.contains("hidden") &&
+      document.activeElement !== closeBtn
+    ) {
       e.preventDefault();
       void writeClipboard(build());
     }

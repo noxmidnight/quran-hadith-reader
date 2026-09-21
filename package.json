@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "fetch-data": "node scripts/fetch-data.mjs",
+    "fetch-tafsirs": "node scripts/fetch-tafsirs.mjs",
     "test:search": "node scripts/test-search.mjs",
     "start": "./Quran-Hadith-Reader",
     "deb": "bash scripts/build-deb.sh",
