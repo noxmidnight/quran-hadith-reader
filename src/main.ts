@@ -157,9 +157,10 @@ function surahNavItems(): NavItem[] {
     kind: "nav" as const,
     key: `surah-${s.number}`,
     target: String(s.number),
-    title: `${s.number}. ${s.englishName}`,
+    index: String(s.number).padStart(2, "0"),
+    title: s.englishName,
     subtitle: `${s.name} · ${s.englishNameTranslation}`,
-    badge: `${s.ayahCount}`,
+    badge: `${s.ayahCount} verses`,
   }));
 }
 
@@ -183,28 +184,29 @@ function ayahCardsForSurah(surah: number): CardItem[] {
 }
 
 function collectionNavItems(): NavItem[] {
-  return books.map((b) => ({
+  return books.map((b, i) => ({
     kind: "nav" as const,
     key: `book-${b.slug}`,
     target: b.slug,
+    index: String(i + 1).padStart(2, "0"),
     title: b.title,
     subtitle: b.titleAr || undefined,
-    badge: b.count ? String(b.count) : undefined,
+    badge: b.count ? `${b.count} hadiths` : undefined,
   }));
 }
 
 function chapterNavItems(book: HadithBook): NavItem[] {
   const chapters = book.chapters || [];
   if (!chapters.length) {
-    // No chapter metadata — one synthetic chapter containing all hadiths
     return [
       {
         kind: "nav",
         key: `ch-${book.slug}-all`,
         target: "0",
+        index: "01",
         title: "All hadiths",
         subtitle: book.titleAr || undefined,
-        badge: String(book.hadiths.length),
+        badge: `${book.hadiths.length} hadiths`,
       },
     ];
   }
@@ -219,9 +221,10 @@ function chapterNavItems(book: HadithBook): NavItem[] {
     kind: "nav" as const,
     key: `ch-${book.slug}-${c.id}`,
     target: String(c.id),
-    title: `${c.id}. ${c.english || "Chapter"}`,
+    index: String(c.id).padStart(2, "0"),
+    title: c.english || `Chapter ${c.id}`,
     subtitle: c.arabic || undefined,
-    badge: String(counts.get(c.id) || 0),
+    badge: `${counts.get(c.id) || 0}`,
   }));
 }
 

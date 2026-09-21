@@ -80,6 +80,8 @@ export interface NavItem {
   title: string;
   subtitle?: string;
   badge?: string;
+  /** Left index label, e.g. "01". */
+  index?: string;
   /** Payload for navigation handlers. */
   target: string;
 }

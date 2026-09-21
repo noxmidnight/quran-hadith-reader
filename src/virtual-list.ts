@@ -1,7 +1,7 @@
 import type { CardItem, ListItem, NavItem } from "./types";
 
-const CARD_HEIGHT = 168;
-const NAV_HEIGHT = 78;
+const CARD_HEIGHT = 196;
+const NAV_HEIGHT = 92;
 const OVERSCAN = 8;
 
 export interface VirtualListApi {
@@ -70,6 +70,13 @@ export function createVirtualList(
         row.type = "button";
         row.className = "nav-row";
         row.dataset.key = item.key;
+
+        if (item.index) {
+          const idx = document.createElement("span");
+          idx.className = "nav-row-index";
+          idx.textContent = item.index;
+          row.appendChild(idx);
+        }
 
         const text = document.createElement("div");
         text.className = "nav-row-text";
