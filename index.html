@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quran & Hadith Reader</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <h1>Quran &amp; Hadith</h1>
+        </div>
+
+        <nav class="mode-toggle" role="tablist" aria-label="Content mode">
+          <button type="button" class="mode-btn active" data-mode="quran" role="tab" aria-selected="true">Quran</button>
+          <button type="button" class="mode-btn" data-mode="hadith" role="tab" aria-selected="false">Hadith</button>
+        </nav>
+
+        <div class="controls">
+          <button type="button" id="translation-btn" class="picker-btn" title="Select translation">
+            <span class="picker-label">Translation</span>
+            <span id="translation-name">Saheeh International</span>
+          </button>
+
+          <label class="search-wrap">
+            <span class="sr-only">Search</span>
+            <input id="search-input" type="search" placeholder="Search…" autocomplete="off" spellcheck="false" />
+          </label>
+        </div>
+      </header>
+
+      <div id="nav-bar" class="nav-bar hidden">
+        <button type="button" id="back-btn" class="back-btn" aria-label="Go back">← Back</button>
+        <p id="nav-path" class="nav-path"></p>
+      </div>
+
+      <div id="status" class="status" aria-live="polite">Loading…</div>
+
+      <main id="list-viewport" class="list-viewport" tabindex="0">
+        <div id="list-spacer" class="list-spacer">
+          <div id="list-window" class="list-window"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Translation picker -->
+    <div id="trans-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="trans-title">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="trans-title">Select translation</h2>
+          <button type="button" class="icon-btn" id="trans-close" aria-label="Close">×</button>
+        </div>
+        <input id="trans-search" type="search" placeholder="Search English translations…" autocomplete="off" />
+        <div id="trans-list" class="picker-list"></div>
+      </div>
+    </div>
+
+    <!-- Copy panel -->
+    <div id="copy-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="copy-title">
+      <div class="panel copy-panel">
+        <div class="panel-head">
+          <h2 id="copy-title">Copy</h2>
+          <button type="button" class="icon-btn" id="copy-close" aria-label="Close">×</button>
+        </div>
+        <p id="copy-ref" class="copy-ref"></p>
+        <div class="copy-preview">
+          <p id="copy-arabic" class="arabic preview-ar" dir="rtl" lang="ar"></p>
+          <p id="copy-translation" class="preview-tr"></p>
+        </div>
+        <div class="copy-options">
+          <label class="check"><input type="checkbox" id="copy-ar-cb" checked /> <span id="copy-ar-label">Arabic</span></label>
+          <label class="check"><input type="checkbox" id="copy-tr-cb" checked /> <span id="copy-tr-label">Translation</span></label>
+        </div>
+        <div class="copy-actions">
+          <button type="button" class="gold-btn" id="copy-btn">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+  </body>
+</html>

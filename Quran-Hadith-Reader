@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Double-click / desktop launcher for Quran & Hadith Reader
+set -euo pipefail
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+cd "$ROOT"
+
+if [[ ! -f dist/index.html || ! -f dist/data/quran/arabic.json ]]; then
+  echo "Building assets…"
+  npm run build
+fi
+
+exec python3 "$ROOT/launch.py"
