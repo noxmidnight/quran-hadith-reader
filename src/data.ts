@@ -11,12 +11,24 @@ import type {
 const cache = new Map<string, unknown>();
 
 async function loadJson<T>(url: string): Promise<T> {
-  if (cache.has(url)) return cache.get(url) as T;
+  const hit = cache.get(url);
+  if (hit !== undefined) return hit as T;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
   const data = (await res.json()) as T;
   cache.set(url, data);
   return data;
+}
+
+/** Drop cached payloads under a path prefix except the keepUrl (if any). */
+function evictPrefix(prefix: string, keepUrl?: string) {
+  for (const key of cache.keys()) {
+    if (!key.includes(prefix)) continue;
+    if (keepUrl && key === keepUrl) continue;
+    if (prefix === "/tafsirs/" && key.endsWith("tafsirs-index.json")) continue;
+    if (prefix === "/hadith/" && key.endsWith("books-index.json")) continue;
+    cache.delete(key);
+  }
 }
 
 export async function loadTranslationsIndex(): Promise<TranslationMeta[]> {
@@ -28,12 +40,9 @@ export async function loadArabicQuran(): Promise<ArabicQuran> {
 }
 
 export async function loadTranslation(id: string): Promise<TranslationFile> {
-  for (const key of [...cache.keys()]) {
-    if (key.includes("/translations/") && !key.endsWith(`${id}.json`)) {
-      cache.delete(key);
-    }
-  }
-  return loadJson(`/data/quran/translations/${id}.json`);
+  const url = `/data/quran/translations/${id}.json`;
+  evictPrefix("/translations/", url);
+  return loadJson(url);
 }
 
 export async function loadTafsirsIndex(): Promise<TafsirMeta[]> {
@@ -45,12 +54,9 @@ export async function loadTafsirsIndex(): Promise<TafsirMeta[]> {
 }
 
 export async function loadTafsir(id: string): Promise<TafsirFile> {
-  for (const key of [...cache.keys()]) {
-    if (key.includes("/tafsirs/") && !key.endsWith(`${id}.json`) && !key.endsWith("tafsirs-index.json")) {
-      cache.delete(key);
-    }
-  }
-  return loadJson(`/data/quran/tafsirs/${id}.json`);
+  const url = `/data/quran/tafsirs/${id}.json`;
+  evictPrefix("/tafsirs/", url);
+  return loadJson(url);
 }
 
 export async function loadHadithIndex(): Promise<HadithBookMeta[]> {
@@ -58,15 +64,7 @@ export async function loadHadithIndex(): Promise<HadithBookMeta[]> {
 }
 
 export async function loadHadithBook(slug: string): Promise<HadithBook> {
-  for (const key of [...cache.keys()]) {
-    if (
-      key.includes("/hadith/") &&
-      key.endsWith(".json") &&
-      !key.endsWith("books-index.json") &&
-      !key.endsWith(`${slug}.json`)
-    ) {
-      cache.delete(key);
-    }
-  }
-  return loadJson(`/data/hadith/${slug}.json`);
+  const url = `/data/hadith/${slug}.json`;
+  evictPrefix("/hadith/", url);
+  return loadJson(url);
 }

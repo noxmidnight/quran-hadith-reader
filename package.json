@@ -1,7 +1,7 @@
 {
   "name": "quran-hadith-reader",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.7",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,16 +11,10 @@
     "fetch-tafsirs": "node scripts/fetch-tafsirs.mjs",
     "test:search": "node scripts/test-search.mjs",
     "start": "./Quran-Hadith-Reader",
-    "deb": "bash scripts/build-deb.sh",
-    "tauri": "tauri"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+    "deb": "bash scripts/build-deb.sh"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
-    "vite": "^8.0.16",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16"
   }
 }

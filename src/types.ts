@@ -6,7 +6,8 @@ export interface TranslationMeta {
   languageName: string;
   name: string;
   englishName: string;
-  direction: string;
+  /** Present in fetched metadata; unused by UI. */
+  direction?: string;
 }
 
 export interface SurahMeta {
@@ -14,8 +15,9 @@ export interface SurahMeta {
   name: string;
   englishName: string;
   englishNameTranslation: string;
-  revelationType: string;
   ayahCount: number;
+  /** Present in fetched metadata; unused by UI. */
+  revelationType?: string;
 }
 
 export interface ArabicAyah {

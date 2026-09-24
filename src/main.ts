@@ -66,6 +66,8 @@ let activeTranslationId =
 let activeTafsirId = localStorage.getItem(LS_TAFSIR) || DEFAULT_TAFSIR;
 
 let arabicCache: ArabicQuran | null = null;
+/** Global ayah index of the first ayah of each surah (1-based surah keys). */
+let surahStart: number[] = [];
 let translationTexts: string[] = [];
 let tafsirTexts: string[] = [];
 let activeSurah: number | null = null;
@@ -158,6 +160,15 @@ const list = createVirtualList(viewport, spacer, windowEl, {
   },
 });
 
+function indexSurahs(arabic: ArabicQuran) {
+  surahStart = new Array(115).fill(0);
+  let offset = 0;
+  for (const s of arabic.surahs) {
+    surahStart[s.number] = offset;
+    offset += s.ayahCount;
+  }
+}
+
 async function ensureQuranLoaded() {
   if (arabicCache && translationTexts.length) return;
   setStatus("Loading Quran…");
@@ -166,6 +177,7 @@ async function ensureQuranLoaded() {
     loadTranslation(activeTranslationId),
   ]);
   arabicCache = arabic;
+  indexSurahs(arabic);
   translationTexts = translation.texts;
 }
 
@@ -210,20 +222,25 @@ function ayahCardsForSurah(surah: number): CardItem[] {
   const tfLabel = tafsirMetaFor(activeTafsirId)?.name || "Tafsir";
   const surahMeta = arabicCache.surahs.find((s) => s.number === surah);
   const name = surahMeta?.englishName || `Surah ${surah}`;
+  const start = surahStart[surah] ?? 0;
+  const count = surahMeta?.ayahCount ?? 0;
+  const cards: CardItem[] = new Array(count);
 
-  return arabicCache.ayahs
-    .map((ayah, i) => ({ ayah, i }))
-    .filter(({ ayah }) => ayah.s === surah)
-    .map(({ ayah, i }) => ({
-      kind: "card" as const,
+  for (let i = 0; i < count; i++) {
+    const idx = start + i;
+    const ayah = arabicCache.ayahs[idx];
+    cards[i] = {
+      kind: "card",
       key: `q-${ayah.n}`,
       ref: `${name} ${ayah.s}:${ayah.a}`,
       arabic: ayah.t,
-      translation: translationTexts[i] || "",
+      translation: translationTexts[idx] || "",
       translationLabel: label,
-      tafsir: tafsirTexts[i] || "",
+      tafsir: tafsirTexts[idx] || "",
       tafsirLabel: tfLabel,
-    }));
+    };
+  }
+  return cards;
 }
 
 function collectionNavItems(): NavItem[] {
@@ -272,8 +289,12 @@ function chapterNavItems(book: HadithBook): NavItem[] {
 }
 
 function hadithCardsForChapter(book: HadithBook, chapterId: number): CardItem[] {
+  const noChapters = !book.chapters?.length;
   return book.hadiths
-    .filter((h) => (h.chapterId ?? 0) === chapterId || (chapterId === 0 && !book.chapters?.length))
+    .filter(
+      (h) =>
+        (h.chapterId ?? 0) === chapterId || (chapterId === 0 && noChapters),
+    )
     .map((h) => ({
       kind: "card" as const,
       key: `h-${book.slug}-${h.id}`,
@@ -303,7 +324,6 @@ function renderCurrentView() {
     return;
   }
 
-  // Hadith
   if (hadithView === "collections") {
     const items = filterNavByText(collectionNavItems(), q);
     list.setItems(items, items.length ? undefined : "No collections match.");
@@ -382,6 +402,47 @@ const onSearch = debounce(() => renderCurrentView(), 200);
 searchInput.addEventListener("input", onSearch);
 backBtn.addEventListener("click", goBack);
 
+type PickerRow = { id: string; title: string; sub: string };
+
+function renderPickerList(
+  listEl: HTMLElement,
+  rows: PickerRow[],
+  activeId: string,
+  onPick: (id: string) => void,
+  emptyMsg: string,
+  leading?: { id: string; title: string; sub: string },
+) {
+  const frag = document.createDocumentFragment();
+
+  if (leading) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "picker-item" + (activeId === leading.id ? " active" : "");
+    btn.innerHTML = `<span>${escapeHtml(leading.title)}</span><span class="sub">${escapeHtml(leading.sub)}</span>`;
+    btn.addEventListener("click", () => onPick(leading.id));
+    frag.appendChild(btn);
+  }
+
+  for (const row of rows) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "picker-item" + (row.id === activeId ? " active" : "");
+    btn.innerHTML = `<span>${escapeHtml(row.title)}</span><span class="sub">${escapeHtml(row.sub)}</span>`;
+    btn.addEventListener("click", () => onPick(row.id));
+    frag.appendChild(btn);
+  }
+
+  if (!rows.length && !leading) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.style.margin = "12px";
+    empty.textContent = emptyMsg;
+    frag.appendChild(empty);
+  }
+
+  listEl.replaceChildren(frag);
+}
+
 function renderTranslationPicker(filter = "") {
   const q = filter.trim().toLowerCase();
   const filtered = translations.filter((t) => {
@@ -393,27 +454,19 @@ function renderTranslationPicker(filter = "") {
     );
   });
 
-  const frag = document.createDocumentFragment();
-  for (const t of filtered) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "picker-item" + (t.id === activeTranslationId ? " active" : "");
-    btn.innerHTML = `<span>${escapeHtml(t.englishName || t.name)}</span><span class="sub">${escapeHtml(t.name)} · ${escapeHtml(t.id)}</span>`;
-    btn.addEventListener("click", () => {
-      void selectTranslation(t.id);
-    });
-    frag.appendChild(btn);
-  }
-
-  if (!filtered.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.style.margin = "12px";
-    empty.textContent = "No translations match.";
-    frag.appendChild(empty);
-  }
-
-  transList.replaceChildren(frag);
+  renderPickerList(
+    transList,
+    filtered.map((t) => ({
+      id: t.id,
+      title: t.englishName || t.name,
+      sub: `${t.name} · ${t.id}`,
+    })),
+    activeTranslationId,
+    (id) => {
+      void selectTranslation(id);
+    },
+    "No translations match.",
+  );
 }
 
 function openTranslationPicker() {
@@ -432,7 +485,9 @@ transClose.addEventListener("click", closeTranslationPicker);
 transOverlay.addEventListener("click", (e) => {
   if (e.target === transOverlay) closeTranslationPicker();
 });
-transSearch.addEventListener("input", () => renderTranslationPicker(transSearch.value));
+transSearch.addEventListener("input", () =>
+  renderTranslationPicker(transSearch.value),
+);
 
 function renderTafsirPicker(filter = "") {
   const q = filter.trim().toLowerCase();
@@ -445,38 +500,20 @@ function renderTafsirPicker(filter = "") {
     );
   });
 
-  const frag = document.createDocumentFragment();
-
-  // Option to hide tafsir
-  const noneBtn = document.createElement("button");
-  noneBtn.type = "button";
-  noneBtn.className = "picker-item" + (!activeTafsirId ? " active" : "");
-  noneBtn.innerHTML = `<span>None</span><span class="sub">Hide tafsir on verses</span>`;
-  noneBtn.addEventListener("click", () => {
-    void selectTafsir("");
-  });
-  frag.appendChild(noneBtn);
-
-  for (const t of filtered) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "picker-item" + (t.id === activeTafsirId ? " active" : "");
-    btn.innerHTML = `<span>${escapeHtml(t.name)}</span><span class="sub">${escapeHtml(t.languageName)} · ${escapeHtml(t.id)}</span>`;
-    btn.addEventListener("click", () => {
-      void selectTafsir(t.id);
-    });
-    frag.appendChild(btn);
-  }
-
-  if (!filtered.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.style.margin = "12px";
-    empty.textContent = "No tafsirs match.";
-    frag.appendChild(empty);
-  }
-
-  tafsirList.replaceChildren(frag);
+  renderPickerList(
+    tafsirList,
+    filtered.map((t) => ({
+      id: t.id,
+      title: t.name,
+      sub: `${t.languageName} · ${t.id}`,
+    })),
+    activeTafsirId,
+    (id) => {
+      void selectTafsir(id);
+    },
+    "No tafsirs match.",
+    { id: "", title: "None", sub: "Hide tafsir on verses" },
+  );
 }
 
 function openTafsirPicker() {
@@ -498,17 +535,16 @@ tafsirOverlay.addEventListener("click", (e) => {
 tafsirSearch.addEventListener("input", () => renderTafsirPicker(tafsirSearch.value));
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    if (!transOverlay.classList.contains("hidden")) {
-      closeTranslationPicker();
-      return;
-    }
-    if (!tafsirOverlay.classList.contains("hidden")) {
-      closeTafsirPicker();
-      return;
-    }
-    if (!navBar.classList.contains("hidden")) goBack();
+  if (e.key !== "Escape") return;
+  if (!transOverlay.classList.contains("hidden")) {
+    closeTranslationPicker();
+    return;
   }
+  if (!tafsirOverlay.classList.contains("hidden")) {
+    closeTafsirPicker();
+    return;
+  }
+  if (!navBar.classList.contains("hidden")) goBack();
 });
 
 async function selectTranslation(id: string) {
@@ -518,9 +554,10 @@ async function selectTranslation(id: string) {
   closeTranslationPicker();
 
   translationTexts = [];
-  await ensureQuranLoaded();
+  setStatus("Loading translation…");
   const file = await loadTranslation(id);
   translationTexts = file.texts;
+  if (!arabicCache) await ensureQuranLoaded();
   if (mode === "quran") renderCurrentView();
 }
 
@@ -586,7 +623,7 @@ async function boot() {
 
     books = await loadHadithIndex();
     await ensureQuranLoaded();
-    await ensureTafsirLoaded();
+    // Tafsir loads lazily when a surah is opened — keeps boot light.
     renderCurrentView();
   } catch (err) {
     console.error(err);

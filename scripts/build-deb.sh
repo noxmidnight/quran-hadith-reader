@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${VERSION:-0.1.6}"
+VERSION="${VERSION:-0.1.7}"
 ARCH="$(dpkg --print-architecture)"
 PKG_NAME="quran-hadith-reader"
 DEB_DIR="$ROOT/packaging/${PKG_NAME}_${VERSION}_${ARCH}"

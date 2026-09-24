@@ -1,11 +1,6 @@
 import type { CardItem } from "./types";
 
-export interface CopyPanelApi {
-  open: (item: CardItem) => void;
-  close: () => void;
-}
-
-export function createCopyPanel(toast: (msg: string) => void): CopyPanelApi {
+export function createCopyPanel(toast: (msg: string) => void) {
   const overlay = document.querySelector<HTMLElement>("#copy-overlay")!;
   const closeBtn = document.querySelector<HTMLButtonElement>("#copy-close")!;
   const refEl = document.querySelector<HTMLElement>("#copy-ref")!;
@@ -103,5 +98,5 @@ export function createCopyPanel(toast: (msg: string) => void): CopyPanelApi {
     void writeClipboard(build());
   });
 
-  return { open, close };
+  return { open };
 }

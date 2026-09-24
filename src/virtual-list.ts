@@ -8,11 +8,6 @@ const OVERSCAN = 4;
 /** Keep list DOM light; long commentaries belong in the detail/copy panel. */
 const TAFSIR_PREVIEW_CHARS = 160;
 
-export interface VirtualListApi {
-  setItems: (items: ListItem[], emptyMessage?: string) => void;
-  destroy: () => void;
-}
-
 function heightOf(item: ListItem): number {
   if (item.kind === "nav") return NAV_HEIGHT;
   return item.tafsir?.trim() ? CARD_HEIGHT_TAFSIR : CARD_HEIGHT;
@@ -39,13 +34,12 @@ export function createVirtualList(
     onCardClick: (item: CardItem) => void;
     onNavClick: (item: NavItem) => void;
   },
-): VirtualListApi {
+) {
   let items: ListItem[] = [];
   let offsets: number[] = [];
   let total = 0;
   let lastStart = -1;
   let lastEnd = -1;
-  let raf = 0;
   let pending = false;
 
   function rebuildOffsets() {
@@ -198,7 +192,7 @@ export function createVirtualList(
   function scheduleRender() {
     if (pending) return;
     pending = true;
-    raf = requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
       pending = false;
       render();
     });
@@ -208,7 +202,7 @@ export function createVirtualList(
   window.addEventListener("resize", scheduleRender);
 
   return {
-    setItems(next, emptyMsg = "") {
+    setItems(next: ListItem[], emptyMsg = "") {
       items = next;
       viewport.scrollTop = 0;
       lastStart = -1;
@@ -228,11 +222,6 @@ export function createVirtualList(
       }
       rebuildOffsets();
       render(true);
-    },
-    destroy() {
-      viewport.removeEventListener("scroll", scheduleRender);
-      window.removeEventListener("resize", scheduleRender);
-      if (raf) cancelAnimationFrame(raf);
     },
   };
 }

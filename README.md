@@ -1,14 +1,13 @@
 # Quran & Hadith Reader
 
-Offline desktop reader for the Quran (all AlQuran Cloud text translations) and 17 hadith collections. Built with Tauri 2 + Vite.
+Offline desktop reader for the Quran (English translations + tafsirs) and 17 hadith collections. Vite frontend + Python/WebKit launcher.
 
 ## Install (.deb)
 
 ```bash
+npm run fetch-data && npm run fetch-tafsirs   # first time only
 npm run deb
-# then:
-pkexec dpkg -i packaging/quran-hadith-reader_0.1.0_arm64.deb
-# or: sudo dpkg -i packaging/quran-hadith-reader_0.1.0_arm64.deb
+pkexec dpkg -i packaging/quran-hadith-reader_*_arm64.deb
 ```
 
 After install, run from the app menu (**Quran & Hadith Reader**) or:
@@ -17,16 +16,17 @@ After install, run from the app menu (**Quran & Hadith Reader**) or:
 quran-hadith-reader
 ```
 
-## Search checks
+## Dev
 
 ```bash
-npm run test:search
+npm run fetch-data && npm run fetch-tafsirs
+npm run build
+npm start
 ```
 
 ## Features
 
-- Matte black UI with gold outlines
-- Quran.com-style translation picker (lazy-loads one translation at a time)
-- All major hadith books (one book loaded at a time)
-- Search within the active collection
-- Click a card to copy Arabic, translation, or both
+- Matte black / gold UI with drill-down navigation
+- Lazy-loaded English translations and verse tafsirs
+- All major hadith books (one book in memory at a time)
+- Virtualized lists, search, selective copy

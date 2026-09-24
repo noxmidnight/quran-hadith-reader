@@ -46,6 +46,9 @@ function hadithNumberMatches(item: CardItem, n: number): boolean {
   return !!m && Number(m[1]) === n;
 }
 
+/** Cap tafsir in the haystack — full commentaries are multi-KB and dominate search cost. */
+const TAFSIR_SEARCH_CHARS = 480;
+
 export function filterCards(items: CardItem[], query: string): CardItem[] {
   const raw = query.trim();
   if (!raw) return items;
@@ -66,22 +69,28 @@ export function filterCards(items: CardItem[], query: string): CardItem[] {
   if (!tokens.length) return items;
 
   return items.filter((item) => {
+    const tf = item.tafsir
+      ? item.tafsir.length > TAFSIR_SEARCH_CHARS
+        ? item.tafsir.slice(0, TAFSIR_SEARCH_CHARS)
+        : item.tafsir
+      : "";
     const hay = normalizeSearchText(
-      `${item.ref} ${item.arabic} ${item.translation} ${item.tafsir || ""}`,
+      `${item.ref} ${item.arabic} ${item.translation} ${tf}`,
     );
     return tokens.every((t) => hay.includes(t));
   });
 }
 
-export function filterNavByText<T extends { title: string; subtitle?: string; badge?: string }>(
-  items: T[],
-  query: string,
-): T[] {
+export function filterNavByText<
+  T extends { title: string; subtitle?: string; badge?: string },
+>(items: T[], query: string): T[] {
   const q = normalizeSearchText(query);
   if (!q) return items;
   const tokens = q.split(" ").filter(Boolean);
   return items.filter((item) => {
-    const hay = normalizeSearchText(`${item.title} ${item.subtitle || ""} ${item.badge || ""}`);
+    const hay = normalizeSearchText(
+      `${item.title} ${item.subtitle || ""} ${item.badge || ""}`,
+    );
     return tokens.every((t) => hay.includes(t));
   });
 }

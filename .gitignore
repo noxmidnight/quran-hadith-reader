@@ -29,6 +29,3 @@ packaging/
 *.sln
 *.sw?
 
-# Tauri
-src-tauri/target/
-src-tauri/gen/
